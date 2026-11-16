@@ -1,9 +1,10 @@
 """Ingestão: lê os Parquets brutos e grava uma base mínima e anonimizada.
 
-Minimização de dados: só entram as colunas que as métricas usam. Data de
-nascimento, idade, município, UF e unidade de saúde são descartados aqui, antes
-de qualquer outra etapa. Códigos ignorados (9 ou nulo) viram 9; datas fora de
-faixa (ex.: ano 5202) viram nulo.
+Minimização de dados: só entram as 5 colunas que as métricas consultam
+(início dos sintomas, internação, UTI, evolução e vacina COVID-19). Todo o
+resto, inclusive data de nascimento, idade, município, UF e unidade de saúde, é
+descartado aqui, antes de qualquer outra etapa. Códigos ignorados (9 ou nulo)
+viram 9; datas fora de faixa (ex.: ano 5202) viram nulo.
 """
 import hashlib
 import json
@@ -17,8 +18,8 @@ RAW_GLOB = str(ROOT / "data" / "INFLUD*.parquet")
 CLEAN_PATH = ROOT / "data" / "processed" / "srag.parquet"
 MANIFEST_PATH = ROOT / "data" / "processed" / "manifest.json"
 
-DATE_COLUMNS = ("DT_NOTIFIC", "DT_SIN_PRI", "DT_INTERNA")
-CODE_COLUMNS = ("HOSPITAL", "UTI", "EVOLUCAO", "VACINA_COV", "VACINA")
+DATE_COLUMNS = ("DT_SIN_PRI",)
+CODE_COLUMNS = ("HOSPITAL", "UTI", "EVOLUCAO", "VACINA_COV")
 MIN_DATE = "2019-01-01"
 
 
@@ -31,8 +32,7 @@ def build_query() -> str:
     codes = ", ".join(
         f"COALESCE(TRY_CAST({c} AS TINYINT), 9) AS {c}" for c in CODE_COLUMNS
     )
-    classi = "COALESCE(TRY_CAST(CLASSI_FIN AS TINYINT), 9) AS CLASSI_FIN"
-    return f"SELECT {dates}, {codes}, {classi} FROM read_parquet('{RAW_GLOB}')"
+    return f"SELECT {dates}, {codes} FROM read_parquet('{RAW_GLOB}')"
 
 
 def sha256(path: Path) -> str:
