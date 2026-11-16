@@ -43,6 +43,18 @@ def test_case_growth_adjusted_ignores_recent_days(con):
     assert result["raw"]["current_cases"] == 7
 
 
+@pytest.mark.parametrize("rate, label", [(0.30, "alta"), (-0.20, "queda"), (0.04, "estável"),
+                                         (-0.05, "estável"), (None, "indefinida")])
+def test_trend_labels_are_computed_by_code(rate, label):
+    assert metrics._trend(rate) == label
+
+
+def test_case_growth_reports_trend_for_adjusted_and_raw_windows(con):
+    _load(con, [_row(20), _row(25), _row(50)] + [_row(3)] * 5)
+    result = metrics.case_growth(con, AS_OF)
+    assert result["adjusted"]["trend"] == "alta" and result["raw"]["trend"] == "alta"
+
+
 def test_mortality_excludes_other_causes_and_open_cases(con):
     _load(con, [_row(30, EVOLUCAO=2), _row(30, EVOLUCAO=1), _row(30, EVOLUCAO=3),
               _row(30, EVOLUCAO=9)])

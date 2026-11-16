@@ -48,7 +48,8 @@ def build_report(*, run_id: str, model: str, metrics: dict, call_ids: dict, char
                                               else "nenhum comentário passou pelos guardrails._"))
     if news["items"]:
         lines += ["", "Notícias consultadas:"] + [
-            f"- {i['published']} · {i['source']} · [{i['title']}]({i['url']})" for i in news["items"]
+            f"- [{i['id'][1:]}] {i['published']} · {i['source']} · [{i['title']}]({i['url']})"
+            for i in news["items"]
         ]
     lines += [
         "",
