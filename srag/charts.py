@@ -50,8 +50,9 @@ def monthly_chart(series: list[dict], out: Path) -> Path:
 
 
 def generate_charts(metrics: dict, out_dir: Path) -> dict:
+    """Grava os PNGs em out_dir e devolve só os nomes dos arquivos (sem caminho absoluto no log)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     return {
-        "daily": str(daily_chart(metrics["daily_cases"], out_dir / "casos_diarios_30d.png")),
-        "monthly": str(monthly_chart(metrics["monthly_cases"], out_dir / "casos_mensais_12m.png")),
+        "daily": daily_chart(metrics["daily_cases"], out_dir / "casos_diarios_30d.png").name,
+        "monthly": monthly_chart(metrics["monthly_cases"], out_dir / "casos_mensais_12m.png").name,
     }

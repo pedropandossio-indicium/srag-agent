@@ -14,6 +14,7 @@ import duckdb
 LAG_DAYS = 14
 WINDOW_DAYS = 30
 MONTHS = 12
+STABLE_BAND = 0.05  # variação de até 5% para cima ou para baixo conta como estável
 
 
 def _scalar(con: duckdb.DuckDBPyConnection, sql: str, params: list) -> int:
@@ -32,6 +33,15 @@ def _ratio(numerator: int, denominator: int) -> float | None:
     return round(numerator / denominator, 4) if denominator else None
 
 
+def _trend(rate: float | None) -> str:
+    """Rótulo qualitativo calculado pelo código, para o LLM não ter de interpretar números."""
+    if rate is None:
+        return "indefinida"
+    if rate > STABLE_BAND:
+        return "alta"
+    return "queda" if rate < -STABLE_BAND else "estável"
+
+
 def case_growth(con, as_of: date) -> dict:
     """Casos dos últimos 30 dias contra os 30 anteriores, com e sem atraso."""
 
@@ -41,10 +51,12 @@ def case_growth(con, as_of: date) -> dict:
         previous_start = previous_end - timedelta(days=WINDOW_DAYS - 1)
         current = _cases_between(con, current_start, end)
         previous = _cases_between(con, previous_start, previous_end)
+        rate = round(current / previous - 1, 4) if previous else None
         return {
             "current_cases": current,
             "previous_cases": previous,
-            "rate": round(current / previous - 1, 4) if previous else None,
+            "rate": rate,
+            "trend": _trend(rate),
             "window": f"{current_start} a {end}",
         }
 
@@ -140,7 +152,7 @@ def daily_series(con, as_of: date) -> list[dict]:
 
 
 def monthly_series(con, as_of: date) -> list[dict]:
-    """Últimos 12 meses completos mais o mês corrente (parcial)."""
+    """12 meses de calendário: 11 completos mais o mês corrente, que é parcial."""
     first_month = date(as_of.year, as_of.month, 1)
     month = first_month.month - (MONTHS - 1)
     year = first_month.year + (month - 1) // 12
